@@ -1,0 +1,85 @@
+name: Build Password Sync App
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build web application
+      run: npm run build
+    
+    - name: Build Mac app
+      run: npm run electron:build:mac
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Create release package
+      run: |
+        mkdir -p mac-release-package
+        cp release/*.dmg mac-release-package/ 2>/dev/null || echo "No DMG files found"
+        cp release/*.zip mac-release-package/ 2>/dev/null || echo "No ZIP files found"
+        
+        # Create installation instructions
+        cat > mac-release-package/INSTALLATION.md << 'EOF'
+        # Password Sync - Installation Guide
+        
+        ## Installation Steps:
+        1. Double-click the DMG file to mount it
+        2. Drag "Password Sync" to your Applications folder
+        3. Open Applications and launch Password Sync
+        
+        ## First Launch:
+        Since this app isn't signed, macOS may show a security warning:
+        1. Right-click the app in Applications
+        2. Select "Open" from the menu
+        3. Click "Open" in the dialog
+        4. The app will launch normally from now on
+        
+        ## What it does:
+        - Securely merge Apple and Google password exports
+        - All processing happens locally (no internet required)
+        - Export unified password collections
+        - Identify and resolve conflicts
+        
+        Your passwords never leave your computer!
+        EOF
+    
+    - name: Upload Mac App
+      uses: actions/upload-artifact@v4
+      with:
+        name: password-sync-mac
+        path: mac-release-package/
+        retention-days: 30
+
+  build-info:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Build Information
+      run: |
+        echo "🚀 Password Sync Build Information"
+        echo "=================================="
+        echo "✅ This workflow builds a Mac app (.dmg file)"
+        echo "✅ Download the artifact after build completes"
+        echo "✅ App works offline - no internet required"
+        echo "✅ All password processing happens locally"
+        echo ""
+        echo "📱 The app will be available in the 'password-sync-mac' artifact"
