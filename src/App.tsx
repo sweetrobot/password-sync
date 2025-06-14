@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import FileUpload from './components/FileUpload';
 import ProcessingStatus from './components/ProcessingStatus';
 import ResultsDisplay from './components/ResultsDisplay';
-import { Password, SyncResult, ProcessingState } from './types/password';
-import { syncPasswords } from './utils/passwordSync';
+import MergeOptions from './components/MergeOptions';
+import ConflictResolver from './components/ConflictResolver';
+import { Password, SyncResult, ProcessingState, MergeDirection, ConflictedPassword } from './types/password';
+import { syncPasswords, applyConflictResolutions } from './utils/passwordSync';
 import { Shield, Zap } from 'lucide-react';
 
 function App() {
   const [appleFile, setAppleFile] = useState<File | null>(null);
   const [googleFile, setGoogleFile] = useState<File | null>(null);
+  const [mergeDirection, setMergeDirection] = useState<MergeDirection>('bidirectional');
   const [processing, setProcessing] = useState<ProcessingState>({
     isProcessing: false,
     stage: '',
@@ -16,6 +19,7 @@ function App() {
   });
   const [results, setResults] = useState<SyncResult | null>(null);
   const [error, setError] = useState<string>('');
+  const [showConflictResolver, setShowConflictResolver] = useState(false);
 
   const handleSync = async () => {
     if (!appleFile || !googleFile) {
@@ -29,16 +33,48 @@ function App() {
     try {
       const result = await syncPasswords(
         appleFile, 
-        googleFile, 
+        googleFile,
+        mergeDirection,
         (stage, progress) => setProcessing({ isProcessing: true, stage, progress })
       );
       
       setResults(result);
       setProcessing({ isProcessing: false, stage: '', progress: 100 });
+      
+      // Show conflict resolver if there are conflicts
+      if (result.conflicts.length > 0) {
+        setShowConflictResolver(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during sync');
       setProcessing({ isProcessing: false, stage: '', progress: 0 });
     }
+  };
+
+  const handleResolveConflict = (conflictId: string, chosenSource: 'apple' | 'google') => {
+    if (!results) return;
+
+    const updatedConflicts = results.conflicts.map(conflict => 
+      conflict.id === conflictId 
+        ? { ...conflict, resolved: true, chosenSource }
+        : conflict
+    );
+
+    const updatedResults = applyConflictResolutions(results, updatedConflicts);
+    setResults(updatedResults);
+  };
+
+  const handleResolveAllConflicts = (source: 'apple' | 'google') => {
+    if (!results) return;
+
+    const resolvedConflicts = results.conflicts.map(conflict => ({
+      ...conflict,
+      resolved: true,
+      chosenSource: source
+    }));
+
+    const updatedResults = applyConflictResolutions(results, resolvedConflicts);
+    setResults(updatedResults);
   };
 
   const handleReset = () => {
@@ -47,7 +83,11 @@ function App() {
     setResults(null);
     setError('');
     setProcessing({ isProcessing: false, stage: '', progress: 0 });
+    setShowConflictResolver(false);
+    setMergeDirection('bidirectional');
   };
+
+  const unresolvedConflicts = results?.conflicts.filter(c => !c.resolved) || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -89,6 +129,16 @@ function App() {
               />
             </div>
 
+            {/* Merge Options */}
+            {appleFile && googleFile && (
+              <MergeOptions
+                direction={mergeDirection}
+                onDirectionChange={setMergeDirection}
+                appleCount={0} // Will be populated after parsing
+                googleCount={0} // Will be populated after parsing
+              />
+            )}
+
             {/* Error Display */}
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
@@ -123,7 +173,24 @@ function App() {
             )}
           </div>
         ) : (
-          <ResultsDisplay results={results} onReset={handleReset} />
+          <div className="max-w-6xl mx-auto">
+            {/* Conflict Resolver */}
+            {showConflictResolver && unresolvedConflicts.length > 0 && (
+              <ConflictResolver
+                conflicts={results.conflicts}
+                onResolveConflict={handleResolveConflict}
+                onResolveAll={handleResolveAllConflicts}
+              />
+            )}
+
+            {/* Results Display */}
+            <ResultsDisplay 
+              results={results} 
+              onReset={handleReset}
+              showConflictResolver={showConflictResolver}
+              onToggleConflictResolver={() => setShowConflictResolver(!showConflictResolver)}
+            />
+          </div>
         )}
       </div>
     </div>

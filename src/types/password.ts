@@ -39,9 +39,12 @@ export interface SyncResult {
 }
 
 export interface ConflictedPassword {
+  id: string;
   apple: Password;
   google: Password;
   reason: string;
+  resolved?: boolean;
+  chosenSource?: 'apple' | 'google';
 }
 
 export interface ProcessingState {
@@ -49,3 +52,5 @@ export interface ProcessingState {
   stage: string;
   progress: number;
 }
+
+export type MergeDirection = 'bidirectional' | 'apple-to-google' | 'google-to-apple';

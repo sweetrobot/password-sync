@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
-import { Download, RefreshCw, AlertTriangle, CheckCircle, Users, Shield } from 'lucide-react';
+import { Download, RefreshCw, AlertTriangle, CheckCircle, Users, Shield, Settings } from 'lucide-react';
 import { SyncResult, Password } from '../types/password';
 import { exportToCsv, exportToAppleFormat, exportToGoogleFormat } from '../utils/csvExport';
 
 interface ResultsDisplayProps {
   results: SyncResult;
   onReset: () => void;
+  showConflictResolver: boolean;
+  onToggleConflictResolver: () => void;
 }
 
-const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset }) => {
+const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ 
+  results, 
+  onReset, 
+  showConflictResolver,
+  onToggleConflictResolver 
+}) => {
   const [activeTab, setActiveTab] = useState<'merged' | 'conflicts'>('merged');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -17,6 +24,9 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset }) => 
     password.url.toLowerCase().includes(searchTerm.toLowerCase()) ||
     password.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const unresolvedConflicts = results.conflicts.filter(c => !c.resolved);
+  const resolvedConflicts = results.conflicts.filter(c => c.resolved);
 
   const handleExportMerged = () => {
     exportToCsv(results.merged, 'synced-passwords.csv');
@@ -48,7 +58,14 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset }) => 
           <div className="flex items-center">
             <AlertTriangle className="w-8 h-8 text-yellow-600 mr-3" />
             <div>
-              <p className="text-2xl font-bold text-gray-900">{results.stats.conflictCount}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {unresolvedConflicts.length}
+                {resolvedConflicts.length > 0 && (
+                  <span className="text-sm text-green-600 ml-1">
+                    (+{resolvedConflicts.length} resolved)
+                  </span>
+                )}
+              </p>
               <p className="text-sm text-gray-600">Conflicts</p>
             </div>
           </div>
@@ -102,6 +119,21 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset }) => 
           <Download className="w-5 h-5 mr-2" />
           Export All Merged
         </button>
+
+        {/* Conflict Resolver Toggle */}
+        {results.conflicts.length > 0 && (
+          <button
+            onClick={onToggleConflictResolver}
+            className={`flex items-center justify-center px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
+              showConflictResolver
+                ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+            }`}
+          >
+            <Settings className="w-5 h-5 mr-2" />
+            {showConflictResolver ? 'Hide' : 'Resolve'} Conflicts
+          </button>
+        )}
         
         <button
           onClick={onReset}
@@ -135,7 +167,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset }) => 
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Conflicts ({results.stats.conflictCount})
+                Conflicts ({unresolvedConflicts.length} unresolved)
               </button>
             )}
           </nav>
@@ -164,6 +196,9 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset }) => 
                         <h4 className="font-semibold text-gray-900">{password.title}</h4>
                         <p className="text-sm text-gray-600 mt-1">{password.url}</p>
                         <p className="text-sm text-blue-600 mt-1">{password.username}</p>
+                        {password.notes && (
+                          <p className="text-xs text-gray-500 mt-2">{password.notes}</p>
+                        )}
                       </div>
                       <span className={`px-2 py-1 text-xs rounded-full ${
                         password.source === 'apple' 
@@ -181,23 +216,51 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset }) => 
 
           {activeTab === 'conflicts' && results.conflicts.length > 0 && (
             <div className="space-y-6">
-              {results.conflicts.map((conflict, index) => (
-                <div key={index} className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
-                  <h4 className="font-semibold text-gray-900 mb-2">Conflict: {conflict.reason}</h4>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="border border-gray-200 rounded p-3 bg-white">
-                      <h5 className="font-medium text-gray-700 mb-2">Apple Version</h5>
-                      <p className="text-sm text-gray-600">{conflict.apple.url}</p>
-                      <p className="text-sm text-blue-600">{conflict.apple.username}</p>
+              {/* Unresolved Conflicts */}
+              {unresolvedConflicts.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-4">
+                    Unresolved Conflicts ({unresolvedConflicts.length})
+                  </h4>
+                  {unresolvedConflicts.map((conflict, index) => (
+                    <div key={conflict.id} className="border border-yellow-200 rounded-lg p-4 bg-yellow-50 mb-4">
+                      <h5 className="font-semibold text-gray-900 mb-2">Conflict: {conflict.reason}</h5>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="border border-gray-200 rounded p-3 bg-white">
+                          <h6 className="font-medium text-gray-700 mb-2">Apple Version</h6>
+                          <p className="text-sm text-gray-600">{conflict.apple.url}</p>
+                          <p className="text-sm text-blue-600">{conflict.apple.username}</p>
+                        </div>
+                        <div className="border border-gray-200 rounded p-3 bg-white">
+                          <h6 className="font-medium text-gray-700 mb-2">Google Version</h6>
+                          <p className="text-sm text-gray-600">{conflict.google.url}</p>
+                          <p className="text-sm text-blue-600">{conflict.google.username}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="border border-gray-200 rounded p-3 bg-white">
-                      <h5 className="font-medium text-gray-700 mb-2">Google Version</h5>
-                      <p className="text-sm text-gray-600">{conflict.google.url}</p>
-                      <p className="text-sm text-blue-600">{conflict.google.username}</p>
-                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Resolved Conflicts */}
+              {resolvedConflicts.length > 0 && (
+                <div className="border border-green-200 rounded-lg bg-green-50 p-4">
+                  <h4 className="font-medium text-green-800 flex items-center mb-2">
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Resolved Conflicts ({resolvedConflicts.length})
+                  </h4>
+                  <div className="text-sm text-green-700">
+                    {resolvedConflicts.map((conflict) => (
+                      <div key={conflict.id} className="flex items-center justify-between py-1">
+                        <span>{conflict.apple.title || conflict.google.title}</span>
+                        <span className="font-medium">
+                          Chose {conflict.chosenSource === 'apple' ? 'Apple' : 'Google'}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>
