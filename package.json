@@ -3,6 +3,10 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "electron/main.js",
+  "homepage": "./",
+  "author": "Password Sync Team",
+  "description": "Securely merge Apple and Google password exports into a unified collection",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
