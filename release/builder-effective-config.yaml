@@ -1,0 +1,23 @@
+directories:
+  output: release
+  buildResources: build
+appId: com.passwordsync.app
+productName: Password Sync
+files:
+  - filter:
+      - dist/**/*
+      - electron/**/*
+mac:
+  category: public.app-category.utilities
+  target:
+    - dmg
+  icon: assets/icon.svg
+dmg:
+  contents:
+    - x: 130
+      'y': 220
+    - x: 410
+      'y': 220
+      type: link
+      path: /Applications
+electronVersion: 30.5.1

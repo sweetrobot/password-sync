@@ -1,0 +1,40 @@
+Password Sync for Mac - Installation Instructions
+================================================
+
+Thank you for downloading Password Sync!
+
+INSTALLATION:
+1. Double-click "Password-Sync.dmg" to open the installer
+2. Drag the "Password Sync" app to your Applications folder
+3. Open Applications folder and double-click "Password Sync" to launch
+
+FIRST TIME SETUP:
+Since this app isn't signed with an Apple Developer certificate, macOS may block it initially.
+
+If you see "Password Sync can't be opened because it is from an unidentified developer":
+1. Right-click (or Control+click) on the Password Sync app in Applications
+2. Select "Open" from the context menu
+3. Click "Open" in the dialog that appears
+4. The app will now run normally
+
+WHAT THIS APP DOES:
+- Securely merge Apple and Google password exports
+- All processing happens locally on your Mac (no data sent anywhere)
+- Export merged passwords in multiple formats
+- Identify and resolve password conflicts between services
+
+USAGE:
+1. Export your passwords from Apple Keychain (CSV format)
+2. Export your passwords from Google Password Manager (CSV format)
+3. Upload both files to the app
+4. Review the merge results and conflicts
+5. Export your unified password collection
+
+SECURITY:
+- No internet connection required
+- All data stays on your computer
+- No passwords are transmitted or stored by the app
+
+Need help? The app includes built-in guidance and error messages.
+
+Enjoy your unified password management!
