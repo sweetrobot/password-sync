@@ -1,6 +1,14 @@
 import Papa from 'papaparse';
 import { Password, ApplePasswordRow, GooglePasswordRow, SyncResult, ConflictedPassword, ProcessingState, MergeDirection } from '../types/password';
-import { v4 as uuidv4 } from 'uuid';
+
+// Simple UUID generator to avoid external dependency
+const generateUUID = (): string => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
 
 export const syncPasswords = async (
   appleFile: File,
@@ -146,7 +154,7 @@ const mergeIntoTarget = (
       
       // Check for conflicts
       if (sourcePassword.password !== matchResult.match.password) {
-        const conflictId = uuidv4();
+        const conflictId = generateUUID();
         conflicts.push({
           id: conflictId,
           apple: targetSource === 'apple' ? matchResult.match : sourcePassword,
@@ -187,7 +195,7 @@ const bidirectionalMerge = (
       
       // Check for conflicts
       if (applePassword.password !== matchResult.match.password) {
-        const conflictId = uuidv4();
+        const conflictId = generateUUID();
         conflicts.push({
           id: conflictId,
           apple: applePassword,
@@ -471,4 +479,4 @@ const escapeCSVField = (field: string): string => {
     return `"${field.replace(/"/g, '""')}"`;
   }
   return field;
-};
+}
